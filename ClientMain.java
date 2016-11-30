@@ -24,6 +24,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.paint.Paint;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.converter.IntegerStringConverter;
@@ -38,9 +39,10 @@ public class ClientMain extends Application{
 	private static Stage stage;
 	private TextField usernameField;
 	private TextField passwordField;
+	private Label userLabel;
 	private TextField recipient;
 	private TextField messageField;
-	private TextArea currentChat;
+	private TextArea currentChat = null;
 	private Label currentRecipients;
 	private static Label loginError;
 	private Label messageWarn;
@@ -97,7 +99,7 @@ public class ClientMain extends Application{
 								Platform.runLater(new Runnable() {
 								    @Override
 								    public void run() {
-								        
+					        			userLabel.setText("Current user is " + username);
 										stage.setScene(chatScene);
 										stage.show();
 								    }
@@ -129,6 +131,7 @@ public class ClientMain extends Application{
 								Platform.runLater(new Runnable() {
 								    @Override
 								    public void run() {
+					        			userLabel.setText("Current user is " + username);
 										stage.setScene(chatScene);
 										stage.show();
 								    }
@@ -198,7 +201,11 @@ public class ClientMain extends Application{
 								    	}
 								    	currentChat = c.getGroup(recs).getTA();
 								    	chatGroup.getChildren().add(currentChat);
-								    	currentRecipients.setText("Currently chatting with " + recs.toString());
+								    	String recsString = recs.toString()
+								    		    			.replace("[", "")  //remove the right bracket
+								    		    			.replace("]", "")  //remove the left bracket
+								    		    			.trim();           //remove trailing spaces from partially initialized arrays
+								    	currentRecipients.setText("Currently chatting with " + recsString);
 								    	stage.show();
 								    }
 								});
@@ -224,21 +231,21 @@ public class ClientMain extends Application{
 		
 		//make fields and labels for username and password
 		Label usernameLabel = new Label("Username:");
-		usernameLabel.relocate(300, 350);
+		usernameLabel.relocate(350, 350);
 		usernameLabel.resize(100, 40);
 		usernameField = new TextField();	
-		usernameField.relocate(400, 350);
+		usernameField.relocate(450, 350);
 		usernameField.resize(250, 50);
 		Label passwordLabel = new Label("Password:");
-		passwordLabel.relocate(300, 400);
+		passwordLabel.relocate(350, 400);
 		passwordLabel.resize(100, 40);
 		passwordField = new TextField();
-		passwordField.relocate(400, 400);		
+		passwordField.relocate(450, 400);		
 		passwordField.resize(250, 50);
 		
 		//make buttons to register and login a user
 		Button registerButton = new Button("Register");
-	    registerButton.relocate(420, 450);
+	    registerButton.relocate(450, 450);
 	    registerButton.resize(100, 50);    
 	    
 	    registerButton.setOnAction(new EventHandler<ActionEvent>() {
@@ -259,8 +266,8 @@ public class ClientMain extends Application{
         	}
         });
 	    Button loginButton = new Button("Login");
-	    loginButton.relocate(530, 450);
-	    loginButton.resize(100, 50);
+	    loginButton.relocate(560, 450);
+	    loginButton.resize(100, 25);
 	    loginButton.setOnAction(new EventHandler<ActionEvent>() {
         	@Override
 	        public void handle(ActionEvent e) {
@@ -322,9 +329,38 @@ public class ClientMain extends Application{
         	}
         });
         currentRecipients = new Label();
-        currentRecipients.relocate(150, 0);
+        currentRecipients.setText("Send a message to start chatting!");
+        currentRecipients.setTextAlignment(TextAlignment.CENTER);
         currentRecipients.setPrefSize(500, 100);
-        
+        currentRecipients.relocate(400, 50);
+        userLabel = new Label();
+        userLabel.relocate(800, 0);
+        userLabel.resize(100, 100);
+        userLabel.setText("Current user is ");
+        Button logout = new Button("Logout");
+        logout.relocate(850, 25);
+        logout.resize(100, 50);
+        logout.setOnAction(new EventHandler<ActionEvent>() {
+        	@Override
+	        public void handle(ActionEvent e) {
+        		System.out.println("loggin out");
+        		//go through logout procedure, clear fields, reset credentials, etc...
+        		messageWarn.setText("");
+        		username = "";
+        		usernameField.setText("");
+        		passwordField.setText("");
+        		messageField.setText("");
+        		recipient.setText("");
+        		currentRecipients.setText("Send a message to start chatting!");
+        		if(chatGroup.getChildren().contains(currentChat)) {
+        			chatGroup.getChildren().remove(currentChat);
+        		}
+        		stage.setScene(loginScene);
+        		stage.show();
+        	}
+        });
+        chatGroup.getChildren().add(logout);
+        chatGroup.getChildren().add(userLabel);
         chatGroup.getChildren().add(messageWarn);
         chatGroup.getChildren().add(recipient);
         chatGroup.getChildren().add(messageField);

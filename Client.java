@@ -63,7 +63,7 @@ public class Client {
 		
 		public ChatGroup(HashSet<String> mems) {
 			members = mems;
-			area.relocate(200, 200);
+			area.relocate(250, 200);
 			area.setWrapText(true);
 			area.setEditable(false);
 		}
