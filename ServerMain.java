@@ -19,7 +19,9 @@ import java.util.HashMap;
 import java.util.Observable;
 
 public class ServerMain extends Observable { 
-	HashMap<String, Client> userDatabase = new HashMap<String, Client>();
+	public HashMap<String, Client> userDatabase = new HashMap<String, Client>();
+	public HashMap<String, ClientObserver> userObservers = new HashMap<String, ClientObserver>();
+	
 	public static void main(String[] args) {
 		try {
 			new ServerMain().setUpNetworking();
@@ -27,8 +29,10 @@ public class ServerMain extends Observable {
 		catch (Exception e) { e.printStackTrace(); }
 	} 
 	private void setUpNetworking() throws Exception {
+		System.out.println("attempting to grab socket");
 		@SuppressWarnings("resource") 
 		ServerSocket serverSock = new ServerSocket(4242); 
+		System.out.println("socket connected");
 		while (true) { 
 			Socket clientSocket = serverSock.accept();
 			ClientObserver writer = new ClientObserver(clientSocket.getOutputStream());
@@ -36,6 +40,7 @@ public class ServerMain extends Observable {
 			t.start(); 
 			this.addObserver(writer); 
 			System.out.println("got a connection");
+			
 		}
 	} 
 	class ClientHandler implements Runnable { 
@@ -57,7 +62,7 @@ public class ServerMain extends Observable {
 							//username already taken, bad registration attempt
 							System.out.println("server read "+command);
 							setChanged(); 
-							notifyObservers("Register Bad");
+							notifyObservers("Register Bad " + commandSplit[1]);
 						}
 						else {
 							System.out.println("new registration username: " + commandSplit[1] + " password: " + commandSplit[2] );
@@ -80,16 +85,35 @@ public class ServerMain extends Observable {
 							//bad login attempt
 							System.out.println("server read "+command);
 							setChanged(); 
-							notifyObservers("Login Bad");
+							notifyObservers("Login Bad " + commandSplit[1]);
 						}
 					}
 					else if(commandSplit[0].equals("Message")) {
-						//about to send a message, need to read in sender, recipients, and message
-						int i = Integer.parseInt(commandSplit[1]);
-						for(int x = 0; x < i; x++) {
-							
+						//about to send a message, need to read in recipient and message
+						System.out.println(command);
+						String recp = commandSplit[1];
+						int x = 2;
+						boolean recipientsExist = true;
+						while(!recp.equals("Message") && recipientsExist) {
+							if(userDatabase.containsKey(recp)) {
+								recp = commandSplit[x];
+								x++;
+							}
+							else {
+								recipientsExist = false;
+								System.out.println("bad recp " + recp);
+							}
 						}
-						
+						if(recipientsExist) {
+							System.out.println("server read "+command);
+							setChanged(); 
+							notifyObservers(command);
+						}
+						else {
+							System.out.println("server read "+command);
+							setChanged(); 
+							notifyObservers("Message Bad " + commandSplit[1]);
+						}
 					}
 				}
 			} 

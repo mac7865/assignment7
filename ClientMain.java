@@ -12,10 +12,8 @@ package assignment7;
 import java.io.*; 
 import java.net.*;
 import java.util.ArrayList;
-import java.util.EventListener;
+import java.util.HashSet;
 
-import assignment5.Critter;
-import javafx.*;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -27,6 +25,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.paint.Paint;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.util.converter.IntegerStringConverter;
 import javafx.scene.control.*;
 
@@ -34,12 +33,17 @@ import javafx.scene.control.*;
 public class ClientMain extends Application{
 	private BufferedReader reader; 
 	private PrintWriter writer;
-	
+	private Client c;
 	private static Scene scene;
 	private static Stage stage;
 	private TextField usernameField;
 	private TextField passwordField;
+	private TextField recipient;
+	private TextField messageField;
+	private TextArea currentChat;
+	private Label currentRecipients;
 	private static Label loginError;
+	private Label messageWarn;
 	private Group loginGroup;
 	private Scene loginScene;
 	private Group chatGroup;
@@ -50,29 +54,7 @@ public class ClientMain extends Application{
 	public void run() throws Exception {
 		//setUpNetworking();
 	} 
-	/*
-	private void initView() {
-		frame = new JFrame("Chat Over Java"); 
-		JPanel mainPanel = new JPanel(); 
-		incoming = new JTextArea(15, 50); 
-		incoming.setLineWrap(true); 
-		incoming.setWrapStyleWord(true); 
-		incoming.setEditable(false); 
-		JScrollPane qScroller = new JScrollPane(incoming);
-		qScroller.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-		qScroller.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
-		outgoing = new JTextField(20); 
-		JButton sendButton = new JButton("Send"); 
-		sendButton.addActionListener(new SendButtonListener()); 
-		mainPanel.add(qScroller); 
-		mainPanel.add(outgoing); 
-		mainPanel.add(sendButton); 
-		frame.getContentPane().add(BorderLayout.CENTER, mainPanel); 
-		frame.setSize(1000, 800);
-		frame.setResizable(false);
-		frame.setVisible(true);
-	} 
-	*/
+	
 	private void setUpNetworking() throws Exception {
 		@SuppressWarnings("resource") 
 		Socket sock = new Socket(InetAddress.getLocalHost(), 4242); 
@@ -106,55 +88,121 @@ public class ClientMain extends Application{
 					if(messageSplit[0].equals("Login")) {
 						//login attempt just made, update with results
 						if(messageSplit[1].equals("Good")) {
-							//good login, proceed to next screen with identity
-							System.out.println("switching panels");
-							username = messageSplit[2];
-							password = messageSplit[3];
-							Platform.runLater(new Runnable() {
-							    @Override
-							    public void run() {
-							        //if you change the UI, do it here !
-									stage.setScene(chatScene);
-									stage.show();
-							    }
-							});
+							//good login, check to see if its this client, proceed to next screen with identity
+							if(messageSplit[2].equals(usernameField.getText())) {
+								System.out.println("switching panels");
+								username = messageSplit[2];
+								password = messageSplit[3];
+								c = new Client(username, password);
+								Platform.runLater(new Runnable() {
+								    @Override
+								    public void run() {
+								        
+										stage.setScene(chatScene);
+										stage.show();
+								    }
+								});
+							}
 						}
 						else {
 							//bad login, update with warning
-							Platform.runLater(new Runnable() {
-							    @Override
-							    public void run() {
-							        //if you change the UI, do it here !
-									loginError.setText("Invalid username or password");
-							    }
-							});
+							if(messageSplit[2].equals(usernameField.getText())) {
+								Platform.runLater(new Runnable() {
+								    @Override
+								    public void run() {
+								        
+										loginError.setText("Invalid username or password");
+								    }
+								});
+							}
 						}
 					}
 					else if(messageSplit[0].equals("Register")) {
 						//registration attempt just made, update with results
 						if(messageSplit[1].equals("Good")) {
-							//new user created, log in with new identity
-							System.out.println("switching panels");
-							username = messageSplit[2];
-							password = messageSplit[3];
-							Platform.runLater(new Runnable() {
-							    @Override
-							    public void run() {
-							        //if you change the UI, do it here !
-									stage.setScene(chatScene);
-									stage.show();
-							    }
-							});
+							//new user created, log in with new identity if applies
+							if(messageSplit[2].equals(usernameField.getText())) {
+								System.out.println("switching panels");
+								username = messageSplit[2];
+								password = messageSplit[3];
+								c = new Client(username, password);
+								Platform.runLater(new Runnable() {
+								    @Override
+								    public void run() {
+										stage.setScene(chatScene);
+										stage.show();
+								    }
+								});
+							}
 						}
 						else {
-							//bad registration, username must be taken
-							Platform.runLater(new Runnable() {
-							    @Override
-							    public void run() {
-							        //if you change the UI, do it here !
-									loginError.setText("Username already taken");
-							    }
-							});
+							if(messageSplit[2].equals(usernameField.getText())) {
+								//bad registration, username must be taken
+								Platform.runLater(new Runnable() {
+								    @Override
+								    public void run() {								   
+										loginError.setText("Username already taken");
+								    }
+								});
+							}
+						}
+					}
+					else if(messageSplit[0].equals("Message")) {
+						if(messageSplit[1].equals("Bad")) {
+							if(usernameField.getText().equals(messageSplit[2])) {
+								Platform.runLater(new Runnable() {
+								    @Override
+								    public void run() {
+								    	messageWarn.setText("Could not send message.");
+								    }
+								});
+							}
+						}
+						else {
+							ArrayList<String> recps = new ArrayList<String>();
+							HashSet<String> recs = new HashSet<String>();
+							int i = 1;
+							while(!messageSplit[i].equals("Message")) {
+								recps.add(messageSplit[i]);
+								recs.add(messageSplit[i]);
+								i++;
+							}
+							i++;
+							if(recps.contains(username)) {
+								Platform.runLater(new Runnable() {
+								    @Override
+								    public void run() {
+								    	messageWarn.setText("");
+								    }
+								});
+								//message applies to this user, retrieve message and display to proper chat
+								String mes = messageSplit[1] + ": ";
+								while(i < messageSplit.length) {
+									mes += messageSplit[i] + " ";
+									i++;
+								}
+								mes += "\n";
+										
+								if(c.containsChat(recs)) {
+									c.addToChat(recs, mes);
+								}
+								else {
+									c.addChat(recs);
+									c.addToChat(recs, mes);
+								}
+								Platform.runLater(new Runnable() {
+								    @Override
+								    public void run() {
+								    	if(chatGroup.getChildren().contains(currentChat)) {
+								    		chatGroup.getChildren().remove(currentChat);															    		
+								    	}
+								    	currentChat = c.getGroup(recs).getTA();
+								    	chatGroup.getChildren().add(currentChat);
+								    	currentRecipients.setText("Currently chatting with " + recs.toString());
+								    	stage.show();
+								    }
+								});
+							}
 						}
 					}
 					System.out.println(message);
@@ -225,7 +273,6 @@ public class ClientMain extends Application{
     			else {
     				loginError.setText("");
     				System.out.println("Login");
-        			loginError.setText("");
         			writer.println("Login " + usernameField.getText() + " " + passwordField.getText());
         			writer.flush();
     			}
@@ -247,10 +294,42 @@ public class ClientMain extends Application{
 	    loginScene = new Scene(loginGroup, 1000, 800);
         
 	    //set up chat panel       
-        Label lab = new Label("Chat time!");
-        lab.resize(100, 100);
-        lab.relocate(500, 400);
-        chatGroup.getChildren().add(lab);
+        messageWarn = new Label("");
+        messageWarn.resize(100, 100);
+        messageWarn.relocate(500, 600);
+        messageWarn.setTextFill(Paint.valueOf("RED"));
+        recipient = new TextField();
+        recipient.relocate(300, 500);
+        messageField = new TextField();
+        messageField.relocate(500, 500);
+        Button sendButton = new Button("Send");
+        sendButton.relocate(700, 500);
+        sendButton.setOnAction(new EventHandler<ActionEvent>() {
+        	@Override
+	        public void handle(ActionEvent e) {
+        		if(recipient.getText().isEmpty()) {
+        			messageWarn.setText("WHO ARE YOU TALKING TO?????");
+    			}
+    			else if(messageField.getText().isEmpty()) {
+    				messageWarn.setText("WHAT ARE YOU SAYING?????");
+    			}
+    			else {
+    				messageWarn.setText("");
+    				System.out.println("Message " + recipient.getText() + " " + messageField.getText());
+        			writer.println("Message " + username + " " + recipient.getText() + " Message " + messageField.getText());
+        			writer.flush();
+    			}
+        	}
+        });
+        currentRecipients = new Label();
+        currentRecipients.relocate(150, 0);
+        currentRecipients.setPrefSize(500, 100);
+        
+        chatGroup.getChildren().add(messageWarn);
+        chatGroup.getChildren().add(recipient);
+        chatGroup.getChildren().add(messageField);
+        chatGroup.getChildren().add(sendButton);
+        chatGroup.getChildren().add(currentRecipients);
         chatScene = new Scene(chatGroup, 1000, 800);
         
         //set the current frame to the login screen
@@ -259,6 +338,14 @@ public class ClientMain extends Application{
 		stage.setScene(loginScene);
 		stage.sizeToScene();
 		stage.setResizable(false);
-		stage.show();		
+		stage.show();	
+		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+		       @Override
+		       public void handle(WindowEvent e) {
+		    	  System.out.println("exiting");
+		          Platform.exit();
+		          System.exit(0);
+		       }
+		});
 	}
 }

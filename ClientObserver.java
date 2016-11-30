@@ -18,7 +18,6 @@ public class ClientObserver extends PrintWriter implements Observer {
 		super(out);
 	} 
 	
-	@Override 
 	public void update(Observable o, Object arg) {
 		System.out.println("updating");
 		String[] commandSplit = ((String) arg).split("\\s+");
