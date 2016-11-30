@@ -1,5 +1,14 @@
 package assignment7;
 
+/* ChatRoom ClientObserver.java
+ * EE422C Project 7 submission by
+ * Mark Carter
+ * mac7865
+ * 16495
+ * Slip days used: 0
+ * Fall 2016
+ */
+
 import java.io.OutputStream; 
 import java.io.PrintWriter; 
 import java.util.Observable; 
@@ -12,9 +21,16 @@ public class ClientObserver extends PrintWriter implements Observer {
 	@Override 
 	public void update(Observable o, Object arg) {
 		System.out.println("updating");
-		this.println("what up client");
-		this.println(arg); //writer.println(arg);
-		this.flush(); //writer.flush(); 
+		String[] commandSplit = ((String) arg).split("\\s+");
+		if(commandSplit[0].equals("Login")) {
+			this.println(arg);
+			this.flush();
+		}
+		else {
+			this.println("what up client");
+			this.println(arg); //writer.println(arg);
+			this.flush(); //writer.flush(); 
+		}
 	}
 }
 

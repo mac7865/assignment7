@@ -10,81 +10,46 @@ package assignment7;
  */
 
 import java.io.*; 
-import java.net.*; 
-import javax.swing.*;
+import java.net.*;
+import java.util.ArrayList;
+import java.util.EventListener;
 
+import assignment5.Critter;
+import javafx.*;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.Group;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.paint.Paint;
+import javafx.stage.Stage;
 import javafx.util.converter.IntegerStringConverter;
+import javafx.scene.control.*;
 
-import java.awt.*; 
-import java.awt.event.*;
 
-public class ClientMain {
+public class ClientMain extends Application{
 	private BufferedReader reader; 
 	private PrintWriter writer;
-	private static JFrame frame = new JFrame("Chat Over Java!");
 	
-	private static JPanel loginPanel;
-	private JTextField usernameField;
-	private JTextField passwordField;
-	private static JLabel loginError;
-
+	private static Scene scene;
+	private static Stage stage;
+	private TextField usernameField;
+	private TextField passwordField;
+	private static Label loginError;
+	private Group loginGroup;
+	private Scene loginScene;
+	private Group chatGroup;
+	private Scene chatScene;
+	private String username;
+	private String password;
+	
 	public void run() throws Exception {
-		setupLoginPanel();
-		setUpNetworking();
+		//setUpNetworking();
 	} 
-	private void setupLoginPanel() {
-		//show first view, login page		
-		loginPanel = new JPanel();
-		loginPanel.setSize(1000, 800);
-		loginPanel.setLayout(null);
-		
-		//make fields and labels for username and password
-		JLabel usernameLabel = new JLabel("Username:");
-		usernameLabel.setLocation(300, 350);
-		usernameLabel.setSize(100, 40);
-		usernameField = new JTextField();	
-		usernameField.setLocation(400, 350);
-		usernameField.setSize(250, 50);
-		JLabel passwordLabel = new JLabel("Password:");
-		passwordLabel.setLocation(300, 400);
-		passwordLabel.setSize(100, 40);
-		passwordField = new JTextField();
-		passwordField.setLocation(400, 400);		
-		passwordField.setSize(250, 50);
-		
-		//make buttons to register and login a user
-		JButton registerButton = new JButton("Register");
-	    registerButton.setLocation(420, 450);
-	    registerButton.setSize(100, 50);    
-	    registerButton.addActionListener(new RegisterButtonListener());
-	    JButton loginButton = new JButton("Login");
-	    loginButton.setLocation(530, 450);
-	    loginButton.setSize(100, 50);
-	    loginButton.addActionListener(new LoginButtonListener());
-	    loginError = new JLabel();
-	    loginError.setLocation(445,500);
-	    loginError.setSize(300, 70);
-	    loginError.setForeground(Color.RED);
-		
-	    //add all components to login panel
-	    loginPanel.add(registerButton);
-	    loginPanel.add(loginButton);
-        loginPanel.add(usernameLabel);
-        loginPanel.add(usernameField);
-        loginPanel.add(passwordLabel);
-        loginPanel.add(passwordField);
-        loginPanel.add(loginError);
-       
-        //set the current frame to the login screen
-        frame.getContentPane().add(loginPanel); 
-		frame.setSize(1000, 800);
-		frame.setResizable(false);
-		frame.setVisible(true);
-	}
 	/*
 	private void initView() {
 		frame = new JFrame("Chat Over Java"); 
@@ -118,54 +83,15 @@ public class ClientMain {
 		Thread readerThread = new Thread(new IncomingReader()); 
 		readerThread.start();
 	}
-	class SendButtonListener implements ActionListener { 
-		public void actionPerformed(ActionEvent ev) {
-			writer.flush();
-		}
-	} 
 	
-	class RegisterButtonListener implements ActionListener { 
-		public void actionPerformed(ActionEvent ev) {
-			if(usernameField.getText().isEmpty()) {
-				loginError.setText("Username can not be blank");
-				frame.validate();
-				return;
-			}
-			if(passwordField.getText().isEmpty()) {
-				loginError.setText("Password can not be blank");
-				frame.validate();
-				return;
-			}
-			loginError.setText("");
-			frame.validate();
-			System.out.println("Register");
-			writer.println("Register");
-			writer.flush();
-		}
-	} 
 	
-	class LoginButtonListener implements ActionListener { 
-		public void actionPerformed(ActionEvent ev) {
-			if(usernameField.getText().isEmpty()) {
-				loginError.setText("Username can not be blank");
-			}
-			else if(passwordField.getText().isEmpty()) {
-				loginError.setText("Password can not be blank");
-			}
-			else {
-				loginError.setText("");
-			}
-			System.out.println("Login");
-			loginError.setText("");
-			frame.validate();
-			writer.println("Login");
-			writer.flush();
-		}
-	} 
+	
+	
 	public static void main(String[] args) {
 		try {
 			ClientMain client = new ClientMain();
 			client.run();
+			launch(args);
 		} 
 		catch (Exception e) { e.printStackTrace(); }
 	} 
@@ -175,6 +101,62 @@ public class ClientMain {
 			String message; 
 			try {
 				while ((message = reader.readLine()) != null) {
+					System.out.println("incoming message " + message);
+					String[] messageSplit = message.split("\\s+");
+					if(messageSplit[0].equals("Login")) {
+						//login attempt just made, update with results
+						if(messageSplit[1].equals("Good")) {
+							//good login, proceed to next screen with identity
+							System.out.println("switching panels");
+							username = messageSplit[2];
+							password = messageSplit[3];
+							Platform.runLater(new Runnable() {
+							    @Override
+							    public void run() {
+							        //if you change the UI, do it here !
+									stage.setScene(chatScene);
+									stage.show();
+							    }
+							});
+						}
+						else {
+							//bad login, update with warning
+							Platform.runLater(new Runnable() {
+							    @Override
+							    public void run() {
+							        //if you change the UI, do it here !
+									loginError.setText("Invalid username or password");
+							    }
+							});
+						}
+					}
+					else if(messageSplit[0].equals("Register")) {
+						//registration attempt just made, update with results
+						if(messageSplit[1].equals("Good")) {
+							//new user created, log in with new identity
+							System.out.println("switching panels");
+							username = messageSplit[2];
+							password = messageSplit[3];
+							Platform.runLater(new Runnable() {
+							    @Override
+							    public void run() {
+							        //if you change the UI, do it here !
+									stage.setScene(chatScene);
+									stage.show();
+							    }
+							});
+						}
+						else {
+							//bad registration, username must be taken
+							Platform.runLater(new Runnable() {
+							    @Override
+							    public void run() {
+							        //if you change the UI, do it here !
+									loginError.setText("Username already taken");
+							    }
+							});
+						}
+					}
 					System.out.println(message);
 				}
 			} 
@@ -182,5 +164,101 @@ public class ClientMain {
 		}
 	}
 	
-
+	@Override
+	public void start(Stage primaryStage) throws Exception {
+		//set up connection
+		setUpNetworking();
+		// JavaFX should be initialized
+    	//show first view, login page
+		loginGroup = new Group();
+		chatGroup = new Group();
+		scene = new Scene(new Group(), 1000, 800);
+		
+		//make fields and labels for username and password
+		Label usernameLabel = new Label("Username:");
+		usernameLabel.relocate(300, 350);
+		usernameLabel.resize(100, 40);
+		usernameField = new TextField();	
+		usernameField.relocate(400, 350);
+		usernameField.resize(250, 50);
+		Label passwordLabel = new Label("Password:");
+		passwordLabel.relocate(300, 400);
+		passwordLabel.resize(100, 40);
+		passwordField = new TextField();
+		passwordField.relocate(400, 400);		
+		passwordField.resize(250, 50);
+		
+		//make buttons to register and login a user
+		Button registerButton = new Button("Register");
+	    registerButton.relocate(420, 450);
+	    registerButton.resize(100, 50);    
+	    
+	    registerButton.setOnAction(new EventHandler<ActionEvent>() {
+        	@Override
+	        public void handle(ActionEvent e) {
+        		if(usernameField.getText().isEmpty()) {
+    				loginError.setText("Username can not be blank");
+    				return;
+    			}
+    			if(passwordField.getText().isEmpty()) {
+    				loginError.setText("Password can not be blank");
+    				return;
+    			}
+    			loginError.setText("");
+    			System.out.println("Register");
+    			writer.println("Register " + usernameField.getText() + " " + passwordField.getText());
+    			writer.flush();
+        	}
+        });
+	    Button loginButton = new Button("Login");
+	    loginButton.relocate(530, 450);
+	    loginButton.resize(100, 50);
+	    loginButton.setOnAction(new EventHandler<ActionEvent>() {
+        	@Override
+	        public void handle(ActionEvent e) {
+        		if(usernameField.getText().isEmpty()) {
+    				loginError.setText("Username can not be blank");
+    			}
+    			else if(passwordField.getText().isEmpty()) {
+    				loginError.setText("Password can not be blank");
+    			}
+    			else {
+    				loginError.setText("");
+    				System.out.println("Login");
+        			loginError.setText("");
+        			writer.println("Login " + usernameField.getText() + " " + passwordField.getText());
+        			writer.flush();
+    			}
+        	}
+	    });
+	    loginError = new Label();
+	    loginError.relocate(445,500);
+	    loginError.resize(300, 70);
+	    loginError.setTextFill(Paint.valueOf("RED"));
+		
+	    //add all components to login group
+	    loginGroup.getChildren().add(loginButton);
+	    loginGroup.getChildren().add(registerButton);
+	    loginGroup.getChildren().add(loginError);
+	    loginGroup.getChildren().add(usernameLabel);
+	    loginGroup.getChildren().add(passwordLabel);
+	    loginGroup.getChildren().add(usernameField);
+	    loginGroup.getChildren().add(passwordField);
+	    loginScene = new Scene(loginGroup, 1000, 800);
+        
+	    //set up chat panel       
+        Label lab = new Label("Chat time!");
+        lab.resize(100, 100);
+        lab.relocate(500, 400);
+        chatGroup.getChildren().add(lab);
+        chatScene = new Scene(chatGroup, 1000, 800);
+        
+        //set the current frame to the login screen
+        stage = new Stage();
+		stage.setTitle("Chat Over Java!");
+		stage.setScene(loginScene);
+		stage.sizeToScene();
+		stage.setResizable(false);
+		stage.show();		
+	}
 }
