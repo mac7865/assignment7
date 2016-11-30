@@ -35,7 +35,6 @@ public class ClientMain extends Application{
 	private BufferedReader reader; 
 	private PrintWriter writer;
 	private Client c;
-	private static Scene scene;
 	private static Stage stage;
 	private TextField usernameField;
 	private TextField passwordField;
@@ -50,6 +49,11 @@ public class ClientMain extends Application{
 	private Scene loginScene;
 	private Group chatGroup;
 	private Scene chatScene;
+	private Group networkGroup;
+	private Scene networkScene;
+	private Label networkWarn;
+	private TextField ipAdressField;
+	private TextField portNumField;
 	private String username;
 	private String password;
 	
@@ -57,15 +61,18 @@ public class ClientMain extends Application{
 		//setUpNetworking();
 	} 
 	
-	private void setUpNetworking() throws Exception {
+	private void setUpNetworking(String ip, int port) throws Exception {
 		@SuppressWarnings("resource") 
-		Socket sock = new Socket(InetAddress.getLocalHost(), 4242); 
+		
+		Socket sock = new Socket(InetAddress.getByName(ip), port); 
 		InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
 		reader = new BufferedReader(streamReader); 
 		writer = new PrintWriter(sock.getOutputStream()); 
 		System.out.println("networking established"); 
 		Thread readerThread = new Thread(new IncomingReader()); 
 		readerThread.start();
+		stage.setScene(loginScene);
+    	stage.show();
 	}
 	
 	
@@ -176,6 +183,9 @@ public class ClientMain extends Application{
 								    @Override
 								    public void run() {
 								    	messageWarn.setText("");
+								    	if(usernameField.getText().equals(messageSplit[1])) {
+								    		messageField.setText("");
+								    	}
 								    }
 								});
 								//message applies to this user, retrieve message and display to proper chat
@@ -222,12 +232,11 @@ public class ClientMain extends Application{
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		//set up connection
-		setUpNetworking();
 		// JavaFX should be initialized
     	//show first view, login page
 		loginGroup = new Group();
 		chatGroup = new Group();
-		scene = new Scene(new Group(), 1000, 800);
+		networkGroup = new Group();
 		
 		//make fields and labels for username and password
 		Label usernameLabel = new Label("Username:");
@@ -368,10 +377,44 @@ public class ClientMain extends Application{
         chatGroup.getChildren().add(currentRecipients);
         chatScene = new Scene(chatGroup, 1000, 800);
         
-        //set the current frame to the login screen
+        //set up network scene
+        ipAdressField = new TextField();
+        ipAdressField.relocate(400, 300);
+        portNumField = new TextField();
+        portNumField.relocate(400, 350);
+        Label ipLabel = new Label();
+        ipLabel.setText("IP Address: ");
+        ipLabel.relocate(300, 300);
+        Label portLabel = new Label();
+        portLabel.setText("Port: ");
+        portLabel.relocate(300, 350);
+        networkWarn = new Label();
+        networkWarn.relocate(400, 600);
+        networkWarn.setTextFill(Paint.valueOf("RED"));
+        Button connect = new Button("Connect");
+        connect.relocate(500, 450);
+        connect.setOnAction(new EventHandler<ActionEvent>() {
+        	@Override
+	        public void handle(ActionEvent e) {
+        		try {
+        			setUpNetworking(ipAdressField.getText(), Integer.parseInt(portNumField.getText()));
+        			networkWarn.setText("");
+        		} catch(Exception ex) {
+        			networkWarn.setText("Could not connect to that IP and Port. Are you sure theres a server running there?");
+        		}
+        	}
+        });
+        networkGroup.getChildren().add(networkWarn);
+        networkGroup.getChildren().add(portLabel);
+        networkGroup.getChildren().add(portNumField);
+        networkGroup.getChildren().add(ipLabel);
+        networkGroup.getChildren().add(ipAdressField);
+        networkGroup.getChildren().add(connect);
+        networkScene = new Scene(networkGroup, 1000, 800);
+        //set the current frame to the network screen, need to connect to a server
         stage = new Stage();
 		stage.setTitle("Chat Over Java!");
-		stage.setScene(loginScene);
+		stage.setScene(networkScene);
 		stage.sizeToScene();
 		stage.setResizable(false);
 		stage.show();	

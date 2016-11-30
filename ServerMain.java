@@ -33,6 +33,7 @@ public class ServerMain extends Observable {
 		@SuppressWarnings("resource") 
 		ServerSocket serverSock = new ServerSocket(4242); 
 		System.out.println("socket connected");
+		System.out.println(serverSock.toString() + " " + serverSock.getLocalSocketAddress());
 		while (true) { 
 			Socket clientSocket = serverSock.accept();
 			ClientObserver writer = new ClientObserver(clientSocket.getOutputStream());
