@@ -5,7 +5,7 @@ package assignment7;
  * Mark Carter
  * mac7865
  * 16495
- * Slip days used: 0
+ * Slip days used:1
  * Fall 2016
  */
 
@@ -80,8 +80,6 @@ public class ClientMain extends Application{
 	
 	public static void main(String[] args) {
 		try {
-			ClientMain client = new ClientMain();
-			client.run();
 			launch(args);
 		} 
 		catch (Exception e) { e.printStackTrace(); }
